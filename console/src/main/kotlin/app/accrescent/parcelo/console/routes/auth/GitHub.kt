@@ -112,20 +112,27 @@ fun AuthenticationConfig.github(
 fun Route.githubRoutes() {
     authenticate("oauth2-github") {
         route("/github") {
-            get("/login") {}
+            get("/login") {
+		    println("Received Github login request ")
+	    }
 
             get("/callback2") {
+		println("Received Github callback2 request ")
                 // Cross-site request forgery (CSRF) protection.
                 // See https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-30#section-10.12
                 val oauthCookie =
                     call.request.cookies[call.application.environment.oauthStateCookieName]
                 if (oauthCookie == null) {
+			
+		    println("oauthCookie == null")
                     call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
 
                 val principal: OAuthAccessTokenResponse.OAuth2 = call.principal() ?: return@get
                 if (principal.state != oauthCookie) {
+			
+		    println("principal.state != oauthCookie")
                     call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
@@ -134,10 +141,13 @@ fun Route.githubRoutes() {
 
                 val githubUserId = githubUser.myself.id
 
+		 println("rocky log 1 ")
                 // Register if not already registered
                 val user = transaction {
                     User.find { Users.githubUserId eq githubUserId }.firstOrNull()
                 } ?: run {
+
+		    println("rocky log 2")
                     val email = githubUser.myself
                         .listEmails()
                         .find { it.isPrimary && it.isVerified }
@@ -154,16 +164,20 @@ fun Route.githubRoutes() {
                         }
                     }
                 }
+		/*
                 val userNotWhitelisted = transaction {
                     WhitelistedGitHubUser
                         .find { WhitelistedGitHubUsers.id eq user.githubUserId }
                         .empty()
                 }
+		println("rocky log4");
                 if (userNotWhitelisted) {
+			println("rocky log 3");
                     call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
-
+		*/
+		println("rocky log5");
                 val sessionId = transaction {
                     Session.new(generateSessionId()) {
                         userId = user.id
@@ -179,6 +193,7 @@ fun Route.githubRoutes() {
                     Reviewer.find { Reviewers.userId eq user.id }.singleOrNull()
                 } != null
 
+		    println(" rocky return auth result")
                 call.respond(HttpStatusCode.OK, AuthResult(reviewer, user.publisher))
             }
         }

@@ -112,8 +112,7 @@ fun Application.module() {
                 ?: throw Exception("GITHUB_OAUTH2_CLIENT_ID not specified in environment"),
             clientSecret = System.getenv("GITHUB_OAUTH2_CLIENT_SECRET")
                 ?: throw Exception("GITHUB_OAUTH2_CLIENT_SECRET not specified in environment"),
-            redirectUrl = System.getenv("GITHUB_OAUTH2_REDIRECT_URL")
-                ?: "http://localhost:8080/auth/github/callback",
+            redirectUrl = System.getenv("GITHUB_OAUTH2_REDIRECT_URL"),
         ),
     )
 
