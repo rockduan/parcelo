@@ -23,7 +23,7 @@ application {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 ksp {
@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.ktor.server.resources)
     implementation(libs.logback)
     implementation(libs.postgresql)
+    implementation("com.aliyun.oss:aliyun-sdk-oss:3.15.1")
     testImplementation(libs.ktor.server.tests)
     testImplementation(libs.kotlin.test)
 }
@@ -103,4 +104,7 @@ tasks.withType<DokkaTask>().configureEach {
             }
         }
     }
+}
+tasks.shadowJar {
+    isZip64 = true
 }

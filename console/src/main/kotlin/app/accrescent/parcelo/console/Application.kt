@@ -9,6 +9,7 @@ import app.accrescent.parcelo.console.jobs.configureJobRunr
 import app.accrescent.parcelo.console.publish.PublishService
 import app.accrescent.parcelo.console.publish.S3PublishService
 import app.accrescent.parcelo.console.routes.auth.configureAuthentication
+import app.accrescent.parcelo.console.storage.AliyunOSSObjectStorageService
 import app.accrescent.parcelo.console.storage.GCSObjectStorageService
 import app.accrescent.parcelo.console.storage.ObjectStorageService
 import app.accrescent.parcelo.console.storage.S3ObjectStorageService
@@ -35,7 +36,17 @@ private const val POSTGRESQL_DEFAULT_SERVER_NAME = "localhost"
 private const val POSTGRESQL_DEFAULT_DATABASE_NAME = "postgres"
 private const val POSTGRESQL_DEFAULT_PORT = 5432
 private const val POSTGRESQL_DEFAULT_USER = "postgres"
-private const val POSTGRESQL_DEFAULT_SSL_MODE = "verify-full"
+//private const val POSTGRESQL_DEFAULT_SSL_MODE = "verify-full"
+private const val POSTGRESQL_DEFAULT_SSL_MODE = "disable"
+// 添加默认值常量
+private const val DEFAULT_BASE_URL = "http://localhost:8080"
+private const val DEFAULT_CORS_ALLOWED_HOST = "localhost:8080"
+private const val DEFAULT_CORS_ALLOWED_SCHEME = "http"
+private const val DEFAULT_S3_ENDPOINT_URL = "http://localhost:9000"
+private const val DEFAULT_S3_REGION = "us-east-1"
+private const val DEFAULT_S3_BUCKET = "parcelo-public"
+private const val DEFAULT_S3_ACCESS_KEY_ID = "minioadmin"
+private const val DEFAULT_S3_SECRET_ACCESS_KEY = "minioadmin"
 
 fun main(args: Array<String>) = EngineMain.main(args)
 
@@ -45,11 +56,11 @@ fun Application.module() {
 
     val config = Config(
         application = Config.Application(
-            baseUrl = System.getenv("BASE_URL"),
+            baseUrl = System.getenv("BASE_URL") ?: DEFAULT_BASE_URL,
         ),
         cors = Config.Cors(
-            allowedHost = System.getenv("CORS_ALLOWED_HOST"),
-            allowedScheme = System.getenv("CORS_ALLOWED_SCHEME"),
+            allowedHost = System.getenv("CORS_ALLOWED_HOST") ?: DEFAULT_CORS_ALLOWED_HOST,
+            allowedScheme = System.getenv("CORS_ALLOWED_SCHEME") ?: DEFAULT_CORS_ALLOWED_SCHEME,
         ),
         postgresql = Config.Postgresql(
             serverName = System.getenv("POSTGRESQL_SERVER_NAME")
@@ -65,35 +76,44 @@ fun Application.module() {
         privateStorage = System.getenv("PRIVATE_STORAGE_BACKEND")?.let {
             when (it) {
                 "GCS" -> Config.ObjectStorage.GCS(
-                    projectId = System.getenv("GCS_PROJECT_ID"),
-                    bucket = System.getenv("PRIVATE_STORAGE_BUCKET"),
+                    projectId = System.getenv("GCS_PROJECT_ID")
+                        ?: throw Exception("GCS_PROJECT_ID not specified in environment"),
+                    bucket = System.getenv("PRIVATE_STORAGE_BUCKET")
+                        ?: throw Exception("PRIVATE_STORAGE_BUCKET not specified in environment"),
                 )
 
                 "S3" -> Config.ObjectStorage.S3(
-                    endpointUrl = System.getenv("PRIVATE_STORAGE_ENDPOINT_URL"),
-                    region = System.getenv("PRIVATE_STORAGE_REGION"),
-                    bucket = System.getenv("PRIVATE_STORAGE_BUCKET"),
-                    accessKeyId = System.getenv("PRIVATE_STORAGE_ACCESS_KEY_ID"),
-                    secretAccessKey = System.getenv("PRIVATE_STORAGE_SECRET_ACCESS_KEY"),
+                    endpointUrl = System.getenv("PRIVATE_STORAGE_ENDPOINT_URL") ?: DEFAULT_S3_ENDPOINT_URL,
+                    region = System.getenv("PRIVATE_STORAGE_REGION") ?: DEFAULT_S3_REGION,
+                    bucket = System.getenv("PRIVATE_STORAGE_BUCKET") ?: "parcelo-private",
+                    accessKeyId = System.getenv("PRIVATE_STORAGE_ACCESS_KEY_ID") ?: DEFAULT_S3_ACCESS_KEY_ID,
+                    secretAccessKey = System.getenv("PRIVATE_STORAGE_SECRET_ACCESS_KEY") ?: DEFAULT_S3_SECRET_ACCESS_KEY,
                 )
 
                 else ->
                     throw Exception("invalid private storage backend $it; must be one of [GCS, S3]")
             }
-        } ?: throw Exception("PRIVATE_STORAGE_BACKEND is not specified in the environment"),
+        } ?: Config.ObjectStorage.S3(
+            endpointUrl = DEFAULT_S3_ENDPOINT_URL,
+            region = DEFAULT_S3_REGION,
+            bucket = "parcelo-private",
+            accessKeyId = DEFAULT_S3_ACCESS_KEY_ID,
+            secretAccessKey = DEFAULT_S3_SECRET_ACCESS_KEY,
+        ),
         s3 = Config.S3(
-            endpointUrl = System.getenv("S3_ENDPOINT_URL"),
-            region = System.getenv("S3_REGION"),
-            bucket = System.getenv("S3_BUCKET"),
-            accessKeyId = System.getenv("S3_ACCESS_KEY_ID"),
-            secretAccessKey = System.getenv("S3_SECRET_ACCESS_KEY"),
+            endpointUrl = System.getenv("S3_ENDPOINT_URL") ?: DEFAULT_S3_ENDPOINT_URL,
+            region = System.getenv("S3_REGION") ?: DEFAULT_S3_REGION,
+            bucket = System.getenv("S3_BUCKET") ?: DEFAULT_S3_BUCKET,
+            accessKeyId = System.getenv("S3_ACCESS_KEY_ID") ?: DEFAULT_S3_ACCESS_KEY_ID,
+            secretAccessKey = System.getenv("S3_SECRET_ACCESS_KEY") ?: DEFAULT_S3_SECRET_ACCESS_KEY,
         ),
         github = Config.GitHub(
             clientId = System.getenv("GITHUB_OAUTH2_CLIENT_ID")
                 ?: throw Exception("GITHUB_OAUTH2_CLIENT_ID not specified in environment"),
             clientSecret = System.getenv("GITHUB_OAUTH2_CLIENT_SECRET")
                 ?: throw Exception("GITHUB_OAUTH2_CLIENT_SECRET not specified in environment"),
-            redirectUrl = System.getenv("GITHUB_OAUTH2_REDIRECT_URL"),
+            redirectUrl = System.getenv("GITHUB_OAUTH2_REDIRECT_URL")
+                ?: "http://localhost:8080/auth/github/callback",
         ),
     )
 
@@ -115,6 +135,12 @@ fun Application.module() {
                         config.privateStorage.bucket,
                         config.privateStorage.accessKeyId,
                         config.privateStorage.secretAccessKey,
+                    )
+                    is Config.ObjectStorage.AliyunOSS -> AliyunOSSObjectStorageService(
+                        endpoint = config.privateStorage.endpoint,
+                        bucket = config.privateStorage.bucket,
+                        accessKeyId = config.privateStorage.accessKeyId,
+                        accessKeySecret = config.privateStorage.accessKeySecret,
                     )
                 }
             }

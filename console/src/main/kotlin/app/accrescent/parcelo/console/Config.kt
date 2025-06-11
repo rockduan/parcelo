@@ -34,6 +34,12 @@ data class Config(
             val accessKeyId: String,
             val secretAccessKey: String,
         ) : ObjectStorage()
+        data class AliyunOSS(
+            val endpoint: String,
+            val bucket: String,
+            val accessKeyId: String,
+            val accessKeySecret: String,
+        ) : ObjectStorage()
     }
 
     data class S3(
