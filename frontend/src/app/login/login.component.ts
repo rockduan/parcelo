@@ -25,13 +25,20 @@ export class LoginComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
+	    console.log("ngOnInit");
         this.activatedRoute.queryParams.subscribe(params => {
-            this.authService.logIn(params['code'], params['state']).subscribe(success => {
-                if (success) {
-                    this.router.navigate(['apps']);
-                } else {
-                    this.loading = false;
-                }
+		console.log("routes params:",params);
+            this.authService.logIn(params['code'], params['state']).subscribe(
+		    success => {
+		    console.log("login result:",success);
+		    console.log('localStorage:',{loggedIn:localStorage.getItem('loggenIn'),reviewer:localStorage.getItem('reviewer'),publisher:localStorage.getItem('publisher')});
+        	        if (success) {
+				console.log("prepareing jump to page apps");
+                   		this.router.navigate(['apps']);
+               		 } else {
+				console.log("login failed!");
+                    		this.loading = false;
+               		 }
             });
         });
     }

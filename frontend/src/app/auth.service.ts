@@ -14,7 +14,7 @@ import { environment } from '../environments/environment';
     providedIn: 'root'
 })
 export class AuthService {
-    private readonly callbackUrl = `${environment.developerApiUrl}/auth/github/callback2`;
+    private readonly callbackUrl = `${environment.developerApiUrl}/auth/github/callback`;
     private readonly sessionUrl = `${environment.developerApiUrl}/api/v1/session`;
     private readonly loggedInStorageKey = 'loggedIn';
     private readonly reviewerStorageKey = 'reviewer';
