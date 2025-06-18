@@ -57,9 +57,10 @@ data class CreateAppRequest(@SerialName("draft_id") val draftId: String)
 fun Route.createAppRoute() {
     post<Apps> {
         val userId = call.principal<Session>()!!.userId
-
+        println("[createAppRoute] userId=$userId")
         // Only allow publishers to publish apps
         val isPublisher = transaction { User.findById(userId)?.publisher }
+        println("[createAppRoute] isPublisher=$isPublisher")
         if (isPublisher != true) {
             call.respond(HttpStatusCode.Forbidden, ApiError.publishForbidden())
             return@post
@@ -73,7 +74,7 @@ fun Route.createAppRoute() {
             call.respond(HttpStatusCode.BadRequest, ApiError.invalidUuid(request.draftId))
             return@post
         }
-
+        println("[createAppRoute] draftId=$draftId")
         // Only allow publishing of approved apps which are not already being published
         val draft = transaction {
             Draft
@@ -83,9 +84,10 @@ fun Route.createAppRoute() {
                 // Update publishing status if found
                 ?.apply { publishing = true }
         }
-
+        println("[createAppRoute] draft found: ${draft != null}")
         if (draft != null) {
             // A draft with this ID exists, so register a job to publish it as an app
+            println("[createAppRoute] Enqueue publish job for draftId=$draftId")
             BackgroundJob.enqueue { registerPublishAppJob(draft.id.value) }
             call.respond(HttpStatusCode.Accepted)
         } else {

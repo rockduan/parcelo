@@ -97,6 +97,8 @@ fun Application.module() {
         ),
     )
 
+    println("[DB-CONFIG] host=${config.postgresql.serverName}, port=${config.postgresql.portNumber}, db=${config.postgresql.databaseName}, user=${config.postgresql.user}")
+
     install(Koin) {
         slf4jLogger()
 
@@ -144,6 +146,7 @@ fun Application.module() {
 
         allowHost(config.cors.allowedHost, schemes = listOf(config.cors.allowedScheme))
         allowHeader(HttpHeaders.ContentType)
+        allowMethod(HttpMethod.Get)  // 添加 GET 方法
         allowMethod(HttpMethod.Delete)
         allowMethod(HttpMethod.Patch)
         allowMethod(HttpMethod.Post)

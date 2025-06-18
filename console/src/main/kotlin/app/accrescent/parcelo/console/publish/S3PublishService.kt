@@ -67,6 +67,7 @@ class S3PublishService(
         icon: InputStream,
         shortDescription: String,
     ): ByteArray {
+        println("[publishDraft] s3EndpointUrl=$s3EndpointUrl, s3Region=$s3Region, s3Bucket=$s3Bucket, s3AccessKeyId=$s3AccessKeyId, shortDescription=$shortDescription")
         TempFile().use { tempApkSet ->
             tempApkSet.outputStream().use { apkSet.copyTo(it) }
 
@@ -75,7 +76,7 @@ class S3PublishService(
                 is ParseApkSetResult.Ok -> parseResult.apkSet
                 is ParseApkSetResult.Error -> throw Exception("APK set parsing failed")
             }
-
+            println("[publishDraft] parsed metadata: packageName=${metadata.metadata.packageName}, versionCode=${metadata.versionCode}, versionName=${metadata.versionName}")
             return publish(
                 ZipFile(tempApkSet.path.toFile()),
                 metadata,
@@ -85,6 +86,7 @@ class S3PublishService(
     }
 
     override suspend fun publishUpdate(apkSet: InputStream, appId: String): ByteArray {
+        println("[publishUpdate] s3EndpointUrl=$s3EndpointUrl, s3Region=$s3Region, s3Bucket=$s3Bucket, s3AccessKeyId=$s3AccessKeyId, appId=$appId")
         TempFile().use { tempApkSet ->
             tempApkSet.outputStream().use { apkSet.copyTo(it) }
 
@@ -93,13 +95,14 @@ class S3PublishService(
                 is ParseApkSetResult.Ok -> parseResult.apkSet
                 is ParseApkSetResult.Error -> throw Exception("APK set parsing failed")
             }
-
+            println("[publishUpdate] parsed metadata: packageName=${metadata.metadata.packageName}, versionCode=${metadata.versionCode}, versionName=${metadata.versionName}")
             return publish(ZipFile(tempApkSet.path.toFile()), metadata, PublicationType.Update)
         }
     }
 
     @OptIn(ExperimentalSerializationApi::class)
     override suspend fun publishEdit(appId: String, shortDescription: String?): ByteArray {
+        println("[publishEdit] s3EndpointUrl=$s3EndpointUrl, s3Region=$s3Region, s3Bucket=$s3Bucket, s3AccessKeyId=$s3AccessKeyId, appId=$appId, shortDescription=$shortDescription")
         S3Client {
             endpointUrl = s3EndpointUrl
             region = s3Region
@@ -123,6 +126,8 @@ class S3PublishService(
                 shortDescription = shortDescription ?: oldRepoData.shortDescription
             ).let { Json.encodeToString(it) }.toByteArray()
 
+            println("[publishEdit] newRepoData for appId=$appId, versionCode=${oldRepoData.versionCode}")
+
             // Publish the new app metadata
             val updateDataReq = PutObjectRequest {
                 bucket = s3Bucket
@@ -143,7 +148,7 @@ class S3PublishService(
         type: PublicationType,
     ): ByteArray {
         val appId = metadata.metadata.packageName
-
+        println("[publish] s3EndpointUrl=$s3EndpointUrl, s3Region=$s3Region, s3Bucket=$s3Bucket, s3AccessKeyId=$s3AccessKeyId, appId=$appId, versionCode=${metadata.versionCode}, versionName=${metadata.versionName}, type=${type::class.simpleName}")
         S3Client {
             endpointUrl = s3EndpointUrl
             region = s3Region

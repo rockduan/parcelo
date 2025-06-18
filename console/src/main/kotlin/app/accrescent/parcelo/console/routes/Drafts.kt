@@ -307,32 +307,41 @@ fun Route.getDraftsRoute() {
 fun Route.updateDraftRoute() {
     patch<Drafts.Id> { route ->
         val userId = call.principal<Session>()!!.userId
+        println("[updateDraftRoute] PATCH called for draft id: ${route.id}, userId: $userId")
 
         val draftId = try {
             UUID.fromString(route.id)
         } catch (e: IllegalArgumentException) {
+            println("[updateDraftRoute] Invalid UUID: ${route.id}")
             call.respond(HttpStatusCode.BadRequest, ApiError.invalidUuid(route.id))
             return@patch
         }
 
         // Submit the draft
         val draft = transaction {
-            Draft.find { DbDrafts.id eq draftId and (DbDrafts.creatorId eq userId) }.singleOrNull()
+            val found = Draft.find { DbDrafts.id eq draftId and (DbDrafts.creatorId eq userId) }.toList()
+            println("[updateDraftRoute] Found drafts: count=${found.size}, values=${found.map { it.id.value }}")
+            found.singleOrNull()
         }
         if (draft == null) {
+            println("[updateDraftRoute] Draft not found for id: $draftId and userId: $userId")
             call.respond(HttpStatusCode.NotFound, ApiError.draftNotFound(draftId))
         } else if (draft.reviewerId != null) {
-            // A reviewer is already assigned
+            println("[updateDraftRoute] Reviewer already assigned for draft id: $draftId")
             call.respond(HttpStatusCode.Conflict, ApiError.reviewerAlreadyAssigned())
         } else {
             // Submit the draft by assigning a random reviewer
             transaction {
-                draft.reviewerId = Reviewers
-                    .select(Reviewers.id)
-                    .orderBy(Random())
-                    .limit(1)
-                    .single()[Reviewers.id]
+                val reviewerIds = Reviewers.select(Reviewers.id).map { it[Reviewers.id] }
+                println("[updateDraftRoute] All reviewer ids: $reviewerIds")
+                val randomReviewer = Reviewers.select(Reviewers.id).orderBy(Random()).limit(1).toList()
+                println("[updateDraftRoute] Random reviewer query result: $randomReviewer")
+                if (randomReviewer.isEmpty()) {
+                    println("[updateDraftRoute] No reviewers found in database!")
+                }
+                draft.reviewerId = randomReviewer.single()[Reviewers.id]
             }
+            println("[updateDraftRoute] Draft submitted and reviewer assigned.")
             call.respond(HttpStatusCode.NoContent)
         }
     }

@@ -8,22 +8,25 @@ SPDX-License-Identifier: AGPL-3.0-only
   <configuration default="false" name="console" type="JetRunConfigurationType">
     <envs>
       <env name="BASE_URL" value="http://localhost:8080" />
-      <env name="CORS_ALLOWED_HOST" value="localhost:4200" />
+      <env name="CORS_ALLOWED_HOST" value="localhost" />
       <env name="CORS_ALLOWED_SCHEME" value="http" />
-      <env name="DEBUG_USER_EMAIL" value="example@example.com" />
-      <env name="DEBUG_USER_REVIEWER_EMAIL" value="example@example.com" />
+      <env name="DEBUG_USER_GITHUB_ID" value=“6718119” />
+      <env name="DEBUG_USER_EMAIL" value="duanrock@foxmail.com" />
+      <env name="DEBUG_USER_REVIEWER_EMAIL" value="duanrock@foxmail.com" />
       <env name="POSTGRESQL_PASSWORD" value="password" />
       <env name="POSTGRESQL_SSL_MODE" value="disable" />
       <env name="PRIVATE_STORAGE_BACKEND" value="S3" />
-      <env name="GITHUB_OAUTH2_REDIRECT_URL" value="http://localhost:4200/auth/github/callback" />
+      <env name="GITHUB_OAUTH2_REDIRECT_URL" value="http://localhost/auth/github/callback" />
       <env name="HOST" value="0.0.0.0" />
       <env name="PORT" value="8080" />
       <env name="S3_ENDPOINT_URL" value="http://127.0.0.1:9000" />
       <env name="S3_REGION" value="us-east-1" />
       <env name="S3_BUCKET" value="parcelo-repo" />
+      <env name="S3_SECRET_ACCESS_KEY" value="minioadmin" />
       <env name="PRIVATE_STORAGE_ENDPOINT_URL" value="http://127.0.0.1:9000" />
       <env name="PRIVATE_STORAGE_REGION" value="us-east-1" />
       <env name="PRIVATE_STORAGE_BUCKET" value="parcelo-privatestorage" />
+      <env name="PRIVATE_STORAGE_SECRET_ACCESS_KEY" value="minioadmin" />
     </envs>
     <option name="MAIN_CLASS_NAME" value="app.accrescent.parcelo.console.ApplicationKt" />
     <module name="parcelo.console.main" />

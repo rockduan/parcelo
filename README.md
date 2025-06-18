@@ -6,7 +6,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Parcelo
 
-The next-generation Accrescent developer console.
+The next-generation TAI appstore developer console.
 
 ## About
 

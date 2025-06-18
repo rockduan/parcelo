@@ -33,16 +33,17 @@ import java.nio.file.Path
  * Implementation of [ObjectStorageService] using S3-compatible storage as the backing store
  */
 class S3ObjectStorageService(
-    private val s3EndpointUrl: Url,
-    private val s3Region: String,
-    private val s3Bucket: String,
-    private val s3AccessKeyId: String,
+    val s3EndpointUrl: Url,
+    val s3Region: String,
+    val s3Bucket: String,
+    val s3AccessKeyId: String,
     private val s3SecretAccessKey: String,
 ) : ObjectStorageService {
     override suspend fun uploadFile(path: Path): EntityID<Int> {
         S3Client {
             endpointUrl = s3EndpointUrl
             region = s3Region
+            forcePathStyle = true
             credentialsProvider = StaticCredentialsProvider {
                 accessKeyId = s3AccessKeyId
                 secretAccessKey = s3SecretAccessKey
@@ -50,12 +51,23 @@ class S3ObjectStorageService(
         }.use { s3Client ->
             val objectKey = generateObjectId()
 
+            val fileBytes = java.nio.file.Files.readAllBytes(path)
+            val preview = fileBytes.take(64).toByteArray()
+            println("[uploadFile] PutObjectRequest params: bucket=$s3Bucket, key=$objectKey, fileSize=${fileBytes.size}, filePreview(hex)=${preview.joinToString(" ") { String.format("%02x", it) }}")
+
             val req = PutObjectRequest {
                 bucket = s3Bucket
                 key = objectKey
                 body = path.asByteStream()
             }
-            s3Client.putObject(req)
+            println("[uploadFile] PutObjectRequest created: $req")
+            try {
+                s3Client.putObject(req)
+                println("[uploadFile] S3 putObject success: key=$objectKey")
+            } catch (e: Exception) {
+                println("[uploadFile] S3 putObject failed: key=$objectKey, error=${e.message}")
+                throw e
+            }
 
             val fileId = transaction { File.new { s3ObjectKey = objectKey }.id }
 
@@ -64,9 +76,12 @@ class S3ObjectStorageService(
     }
 
     override suspend fun uploadBytes(bytes: ByteArray): EntityID<Int> {
+        println("[uploadBytes] ENV: endpointUrl=$s3EndpointUrl, region=$s3Region, bucket=$s3Bucket, accessKeyId=${s3AccessKeyId.take(4)}..., secretAccessKey=${s3SecretAccessKey.take(4)}...")
+        println("[uploadBytes] S3Client will be constructed with: endpointUrl=$s3EndpointUrl, region=$s3Region, accessKeyId=${s3AccessKeyId.take(4)}..., secretAccessKey=${s3SecretAccessKey.take(4)}...")
         S3Client {
             endpointUrl = s3EndpointUrl
             region = s3Region
+            forcePathStyle = true
             credentialsProvider = StaticCredentialsProvider {
                 accessKeyId = s3AccessKeyId
                 secretAccessKey = s3SecretAccessKey
@@ -74,12 +89,22 @@ class S3ObjectStorageService(
         }.use { s3Client ->
             val objectKey = generateObjectId()
 
+            val preview = bytes.take(64).toByteArray()
+            println("[uploadBytes] PutObjectRequest params: bucket=$s3Bucket, key=$objectKey, bytesSize=${bytes.size}, bytesPreview(hex)=${preview.joinToString(" ") { String.format("%02x", it) }}")
+
             val req = PutObjectRequest {
                 bucket = s3Bucket
                 key = objectKey
                 body = ByteStream.fromBytes(bytes)
             }
-            s3Client.putObject(req)
+            println("[uploadBytes] PutObjectRequest created: $req")
+            try {
+                s3Client.putObject(req)
+                println("[uploadBytes] S3 putObject success: key=$objectKey")
+            } catch (e: Exception) {
+                println("[uploadBytes] S3 putObject failed: key=$objectKey, error=${e.message}")
+                throw e
+            }
 
             val fileId = transaction { File.new { s3ObjectKey = objectKey }.id }
 

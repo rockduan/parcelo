@@ -44,6 +44,7 @@ fun Application.configureAuthentication(
 ) {
     val developmentMode = environment.developmentMode
 
+    println("=== Starting authentication configuration ===")
     install(Sessions) {
         cookie<Session>(if (!developmentMode) "__Host-session" else "session") {
             cookie.maxAge = if (!developmentMode) SESSION_LIFETIME else Duration.INFINITE

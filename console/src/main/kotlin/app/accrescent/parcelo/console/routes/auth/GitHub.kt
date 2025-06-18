@@ -74,9 +74,17 @@ fun AuthenticationConfig.github(
     redirectUrl: String,
     httpClient: HttpClient = HttpClient(),
 ) {
+	println("=== GitHub OAuth Configuration ===")
+    println("Client ID: $clientId")
+    println("Client Secret: ${clientSecret.take(5)}...")  // 只打印前5个字符，保护敏感信息
+    println("Redirect URL: $redirectUrl")
     oauth("oauth2-github") {
-        urlProvider = { redirectUrl }
+        urlProvider = { 
+		 println("=== Providing OAuth URL: $redirectUrl ===")
+		redirectUrl
+	}
         providerLookup = {
+		 println("=== Looking up OAuth provider ===")
             OAuthServerSettings.OAuth2ServerSettings(
                 name = "github",
                 authorizeUrl = "https://github.com/login/oauth/authorize",
@@ -88,7 +96,10 @@ fun AuthenticationConfig.github(
                 onStateCreated = { call, state ->
                     // Cross-site request forgery (CSRF) protection.
                     // See https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-30#section-10.12
-                    call.response.cookies.append(
+          println("=== OAuth State Created ===")
+                    println("State: $state")
+                    println("Cookie Name: ${call.application.environment.oauthStateCookieName}")
+		    call.response.cookies.append(
                         Cookie(
                             name = call.application.environment.oauthStateCookieName,
                             value = state,
@@ -112,9 +123,13 @@ fun AuthenticationConfig.github(
 fun Route.githubRoutes() {
     authenticate("oauth2-github") {
         route("/github") {
-            get("/login") {}
+            get("/login") {
+                println("=== Handling GitHub login request ===")
+	    }
 
             get("/callback2") {
+		     println("=== Handling GitHub callback2 ===${call.request.local.uri},Query Parameters:${call.request.queryParameters},Headers:${call.request.headers}")
+
                 // Cross-site request forgery (CSRF) protection.
                 // See https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-30#section-10.12
                 val oauthCookie =
@@ -143,42 +158,49 @@ fun Route.githubRoutes() {
                         .find { it.isPrimary && it.isVerified }
                         ?.email
                         ?: run {
+				println("email check forbidden")
                             call.respond(HttpStatusCode.Forbidden)
                             return@get
                         }
 
                     transaction {
+			   println("create new User")
                         User.new {
                             this.githubUserId = githubUserId
                             this.email = email
                         }
                     }
                 }
+		println("current GitHub ID:${user.githubUserId}")
+		println("DEBUG_USER_GITHUB_ID:${System.getenv("DEBUG_USER_GITHUB_ID")}")
+/*
                 val userNotWhitelisted = transaction {
                     WhitelistedGitHubUser
                         .find { WhitelistedGitHubUsers.id eq user.githubUserId }
                         .empty()
                 }
                 if (userNotWhitelisted) {
+			println("userNotWhitelisted")
                     call.respond(HttpStatusCode.Forbidden)
                     return@get
                 }
-
+*/
                 val sessionId = transaction {
                     Session.new(generateSessionId()) {
+			    println("new session");
                         userId = user.id
                         expiryTime =
                             System.currentTimeMillis() + SESSION_LIFETIME.inWholeMilliseconds
                     }.id.value
                 }
-
+		println("before call.sessions.set")
                 call.sessions.set(Session(sessionId))
 
                 // Determine whether the user is a reviewer
                 val reviewer = transaction {
                     Reviewer.find { Reviewers.userId eq user.id }.singleOrNull()
                 } != null
-
+		println("=== Authentication successful for user: $githubUserId ===")
                 call.respond(HttpStatusCode.OK, AuthResult(reviewer, user.publisher))
             }
         }
