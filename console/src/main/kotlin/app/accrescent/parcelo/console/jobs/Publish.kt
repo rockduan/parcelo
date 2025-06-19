@@ -19,6 +19,7 @@ import org.jobrunr.scheduling.BackgroundJob
 import org.koin.java.KoinJavaComponent.inject
 import org.koin.java.KoinJavaComponent.get
 import java.util.UUID
+import app.accrescent.parcelo.console.publish.generateRepoIndex
 import app.accrescent.parcelo.console.Config
 import java.io.InputStream
 
@@ -47,10 +48,10 @@ fun registerPublishAppJob(draftId: UUID) {
             println("[registerPublishAppJob] storageService is not S3ObjectStorageService, actual type: ${storageService::class.qualifiedName}")
         }
         println("[registerPublishAppJob] before loading draft fileId=${draft.fileId}")
-        storageService.loadObject(draft.fileId) { draftStream: InputStream ->
+        storageService.loadObject(draft.fileId) { draftStream ->
             println("[registerPublishAppJob] loaded draft fileId=${draft.fileId}")
             println("[registerPublishAppJob] before loading icon fileId=$iconFileId")
-            storageService.loadObject(iconFileId) { iconStream: InputStream ->
+            storageService.loadObject(iconFileId) { iconStream ->
                 println("[registerPublishAppJob] loaded icon fileId=$iconFileId")
                 println("[registerPublishAppJob] calling publishService.publishDraft ...")
                 publishService.publishDraft(draftStream, iconStream, draft.shortDescription)
@@ -86,6 +87,20 @@ fun registerPublishAppJob(draftId: UUID) {
         }
         println("[registerPublishAppJob] AccessControlList created for appId=${app.id}")
     }
+    
+    // 自动聚合生成 repodata.0.json
+    val config: Config = get(Config::class.java)
+    runBlocking {
+        generateRepoIndex(
+            endpointUrl = config.s3.endpointUrl,
+            region = config.s3.region,
+            bucket = config.s3.bucket,
+            accessKeyId = config.s3.accessKeyId,
+            secretAccessKey = config.s3.secretAccessKey
+        )
+    }
+
+    
 }
 
 /**
@@ -99,8 +114,8 @@ fun registerPublishUpdateJob(updateId: UUID) {
 
     // Publish to the repository
     val updatedMetadata = runBlocking {
-        storageService.loadObject(update.fileId!!) {
-            runBlocking { publishService.publishUpdate(it, update.appId.value) }
+        storageService.loadObject(update.fileId!!) { inputStream ->
+            runBlocking { publishService.publishUpdate(inputStream, update.appId.value) }
         }
     }
 
