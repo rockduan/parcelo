@@ -1,0 +1,89 @@
+server {
+    listen 80;
+    server_name localhost;  # 替换为你的域名
+    # 增加客户端请求体大小限制
+    client_max_body_size 100M;  # 或者更大的值，比如 500M
+   location /auth/github/login/ {
+        proxy_pass http://localhost:8080/auth/github/login;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+               # 添加 CORS 头
+        add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+
+        # 处理 OPTIONS 请求
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+        }
+
+
+    location /auth/github/callback2/ {
+        proxy_pass http://localhost:8080/auth/github/callback2;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+	       # 添加 CORS 头
+        add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+
+        # 处理 OPTIONS 请求
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+	}
+   # 后端API代理
+    location /api/ {
+        proxy_pass http://localhost:8080/api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                # 添加 CORS 头
+        add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+# 增加客户端请求体大小限制
+    client_max_body_size 100M;  # 或者更大的值，比如 500M
+        # 处理 OPTIONS 请求
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'http://localhost' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, DELETE, PATCH' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+    }
+
+
+    # 前端文件
+    location / {
+        root /var/www/parcelo-frontend/frontend/browser;  # 替换为你的前端构建文件路径
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+
+}
